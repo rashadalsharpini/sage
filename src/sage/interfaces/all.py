@@ -42,7 +42,7 @@ lazy_import('sage.interfaces.singular', ['singular', 'singular_version', 'Singul
 lazy_import('sage.interfaces.tachyon', 'tachyon_rt')
 
 # The following variable is used by sage-shell-mode in emacs:
-interfaces = ['gap', 'gap3', 'giac', 'gp', 'mathematica', 'gnuplot',
+interfaces = ['gap', 'gap3', 'giac', 'gp', 'mathematica', 'mathics', 'gnuplot',
               'kash', 'magma', 'macaulay2', 'maple', 'maxima',
               'mathematica', 'mwrank', 'octave', 'r', 'singular',
               'sage0', 'sage']

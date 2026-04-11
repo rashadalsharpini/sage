@@ -388,6 +388,7 @@ as Sage's `e` (:issue:`29833`)::
 import os
 
 from sage.misc.cachefunc import cached_method
+from sage.interfaces.abc import MathicsElement as ABCMathicsElement
 from sage.interfaces.interface import Interface, InterfaceElement, InterfaceFunction, InterfaceFunctionElement
 from sage.interfaces.tab_completion import ExtraTabCompletion
 from sage.misc.instancedoc import instancedoc
@@ -410,7 +411,7 @@ def _mathics_sympysage_symbol(self):
         sage: from sage.interfaces.mathics import _mathics_sympysage_symbol
         sage: mt = mathics('t')
         sage: st = mt.to_sympy(); st
-        _Mathics_User_Global`t
+        _uGlobal_t
         sage: _mathics_sympysage_symbol(st)
         t
         sage: bool(_ == st._sage_())
@@ -423,10 +424,12 @@ def _mathics_sympysage_symbol(self):
         name = self.name
         if name.startswith('_Mathics_User_'):
             name = name.split('`')[1]
-            if name == mathics._true_symbol():
-                return True
-            if name == mathics._false_symbol():
-                return False
+        elif name.startswith("_uGlobal_"):
+            name = name[9:]
+        if name == mathics._true_symbol():
+            return True
+        if name == mathics._false_symbol():
+            return False
         return SR.var(name)
     except ValueError:
         # sympy sometimes returns dummy variables
@@ -514,7 +517,7 @@ class Mathics(Interface):
             from mathics.session import MathicsSession
             from mathics.core.load_builtin import import_and_load_builtins
             import_and_load_builtins()
-            self._session = MathicsSession()
+            self._session = MathicsSession(add_builtin=True)
             from sage.interfaces.sympy import sympy_init
             sympy_init()
             from sympy import Symbol
@@ -772,27 +775,46 @@ optional Sage package Mathics installed.
 
         EXAMPLES::
 
-            sage: mathics.help('Sin')                   # optional - mathics
-            'sine function\n'
+        sage: mathics.help('Sin')                   # optional - mathics
+        '\n  Sin[z]\n    returns the sine of z.\n\n\nAttributes[Sin] = {Listable, NumericFunction, Protected}\n'
 
-            sage: print(_)                              # optional - mathics
-            sine function
-            <BLANKLINE>
+        sage: print(_)                              # optional - mathics
+        <BLANKLINE>
+          Sin[z]
+            returns the sine of z.
+        <BLANKLINE>
+        <BLANKLINE>
+        Attributes[Sin] = {Listable, NumericFunction, Protected}
+        <BLANKLINE>
 
-            sage: print(mathics.help('Sin', long=True)) # optional - mathics
-            sine function
-            <BLANKLINE>
-            Attributes[Sin] = {Listable, NumericFunction, Protected}
-            <BLANKLINE>
+        sage: print(mathics.help('Sin', long=True)) # optional - mathics
+        <BLANKLINE>
+          Sin[z]
+            returns the sine of z.
+        <BLANKLINE>
+        <BLANKLINE>
+        Attributes[Sin] = {Listable, NumericFunction, Protected}
+        <BLANKLINE>
 
-            sage: print(mathics.Factorial.__doc__)  # optional - mathics
-            factorial
-            <BLANKLINE>
+        sage: print(mathics.Factorial.__doc__)  # optional - mathics
+        <BLANKLINE>
+          Factorial[n]
+          n!
+            computes the factorial of n.
+        <BLANKLINE>
+        <BLANKLINE>
+        Attributes[Factorial] = {Listable, NumericFunction, Protected, ReadProtected}
+        <BLANKLINE>
 
-            sage: u = mathics('Pi')                 # optional - mathics
-            sage: print(u.Cos.__doc__)              # optional - mathics
-            cosine function
-            <BLANKLINE>
+        sage: u = mathics('Pi')                 # optional - mathics
+        sage: print(u.Cos.__doc__)              # optional - mathics
+        <BLANKLINE>
+          Cos[z]
+            returns the cosine of z.
+        <BLANKLINE>
+        <BLANKLINE>
+        Attributes[Cos] = {Listable, NumericFunction, Protected}
+        <BLANKLINE>
         """
         if long:
             return self.eval('Information[%s]' % cmd)
@@ -813,8 +835,11 @@ optional Sage package Mathics installed.
         return InterfaceFunction(self, attrname)
 
 
+from sage.interfaces.abc import MathicsElement as ABCMathicsElement
+
+
 @instancedoc
-class MathicsElement(ExtraTabCompletion, InterfaceElement):
+class MathicsElement(ExtraTabCompletion, InterfaceElement, ABCMathicsElement):
     r"""
     Element class of the Mathics interface.
 
@@ -952,9 +977,9 @@ class MathicsElement(ExtraTabCompletion, InterfaceElement):
         r"""
         EXAMPLES::
 
-            sage: Q = mathics('Sin[x Cos[y]]/Sqrt[1-x^2]')   # optional - mathics
-            sage: latex(Q)                                   # optional - mathics
-            \frac{\text{Sin}\left[x \text{Cos}\left[y\right]\right]}{\sqrt{1-x^2}}
+        sage: Q = mathics('Sin[x Cos[y]]/Sqrt[1-x^2]')   # optional - mathics
+        sage: latex(Q)                                   # optional - mathics
+        \frac{\text{Sin}(x \text{Cos}(y))}{\sqrt{1-x^2}}
         """
         z = str(self.parent()('TeXForm[%s]' % self.name()))
         i = z.find('=')
@@ -1071,9 +1096,9 @@ class MathicsElement(ExtraTabCompletion, InterfaceElement):
                 return self.parent()(i).sage()
             if isinstance(p, list):
                 return [conv(i) for i in p]
-            if isinstance(p, tuple):
-                return tuple([conv(i) for i in p])
-            if type(p) is dict:
+            elif isinstance(p, tuple):
+                return [conv(i) for i in p]
+            elif type(p) is dict:
                 return {conv(k): conv(v) for k, v in p.items()}
             return p
         return s

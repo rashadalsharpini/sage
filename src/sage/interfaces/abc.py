@@ -119,6 +119,25 @@ class MagmaElement:
         sage: len(sage.interfaces.abc.MagmaElement.__subclasses__()) <= 1
         True
     """
+
+    pass
+
+
+class MathicsElement:
+    r"""
+    Abstract base class for :class:`~sage.interfaces.mathics.MathicsElement`.
+
+    This class is defined for the purpose of ``isinstance`` tests.  It should not be
+    instantiated.
+
+    EXAMPLES:
+
+    By design, there is a unique direct subclass::
+
+        sage: len(sage.interfaces.abc.MathicsElement.__subclasses__()) <= 1
+        True
+    """
+
     pass
 
 
