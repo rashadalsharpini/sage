@@ -1184,6 +1184,9 @@ cdef class Expression(Expression_abc):
             sage: SR(CDF.0)._maxima_init_()
             '1.0000000000000000*%i'
         """
+        if I.name() == 'mathics':
+            from sage.symbolic.expression_conversions import mathics_converter
+            return mathics_converter(self)
         from sage.symbolic.expression_conversions import InterfaceInit
         return InterfaceInit(I)(self)
 

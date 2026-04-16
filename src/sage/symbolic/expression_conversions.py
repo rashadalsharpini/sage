@@ -856,6 +856,88 @@ class FriCASConverter(InterfaceInit):
 fricas_converter = FriCASConverter()
 
 
+###########
+# Mathics #
+###########
+class MathicsConverter(InterfaceInit):
+    """
+    Convert any expression to Mathics.
+
+    EXAMPLES::
+
+        sage: var('x,y')
+        (x, y)
+        sage: f = exp(x^2) - arcsin(pi+x)/y
+        sage: f._mathics_()                                                     # optional - mathics
+        -ArcSin[x + Pi] / y + E ^ x ^ 2
+    """
+
+    def __init__(self, interface=None):
+        if interface is None:
+            from sage.interfaces.mathics import mathics
+
+            interface = mathics
+        super().__init__(interface)
+        self.name_init = "_mathics_init_"
+
+    def pyobject(self, ex, obj):
+        try:
+            res = getattr(obj, self.name_init)()
+        except AttributeError:
+            try:
+                res = getattr(obj, "_mathematica_init_")()
+            except AttributeError:
+                res = repr(obj)
+        return res
+
+    def composition(self, ex, operator):
+        ops = ex.operands()
+
+        if hasattr(operator, "_mathics_init_evaled_"):
+            return getattr(operator, "_mathics_init_evaled_")(*ops)
+        if hasattr(operator, "_mathematica_init_evaled_"):
+            return getattr(operator, "_mathematica_init_evaled_")(*ops)
+
+        ops = [self(_) for _ in ops]
+
+        op = None
+        # 1. Check if the mathics interface explicitly provides a conversion
+        if hasattr(operator, "_interface_init_"):
+            try:
+                op = operator._interface_init_(self.interface)
+                if op == operator.name():
+                    op = None
+            except Exception:
+                pass
+
+        # 2. Check if the mathematica interface explicitly provides a conversion
+        if op is None and hasattr(operator, "_interface_init_"):
+            try:
+                from sage.interfaces.mathematica import mathematica
+
+                op = operator._interface_init_(mathematica)
+                if op == operator.name():
+                    op = None
+            except Exception:
+                pass
+
+        if op is None:
+            try:
+                op = operator._mathics_init_()
+            except AttributeError:
+                try:
+                    op = operator._mathematica_init_()
+                except AttributeError:
+                    op = operator.name()
+                    if op.islower():
+                        op = op.capitalize()
+
+        return self.interface._function_call_string(op, ops, [])
+
+
+mathics_converter = MathicsConverter()
+
+
 ##############
 # Polynomial #
 ##############

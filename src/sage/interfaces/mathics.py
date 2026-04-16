@@ -838,6 +838,81 @@ optional Sage package Mathics installed.
 from sage.interfaces.abc import MathicsElement as ABCMathicsElement
 
 
+def mathics_to_sage(m_node, locals=None):
+    from sage.all import SR, Integer, RealNumber, Rational, I, pi, e
+    import mathics.core.atoms as m_atoms
+    import mathics.core.symbols as m_symbols
+    import mathics.core.expression as m_expr
+
+    if locals is None:
+        locals = {}
+
+    if isinstance(m_node, m_atoms.Integer):
+        return Integer(str(m_node))
+    if isinstance(m_node, m_atoms.Rational):
+        return Rational(str(m_node))
+    if isinstance(m_node, m_atoms.Real):
+        return RealNumber(str(m_node))
+    if isinstance(m_node, m_symbols.Symbol):
+        name = m_node.get_name()
+        if name == "System`E":
+            return e
+        if name == "System`Pi":
+            return pi
+        if name == "System`I":
+            return I
+        if name == "System`True":
+            return True
+        if name == "System`False":
+            return False
+
+        name_short = name.split("`")[-1]
+        if name_short in locals:
+            return locals[name_short]
+        return SR.var(name_short)
+
+    if isinstance(m_node, m_atoms.String):
+        return str(m_node.value)
+
+    if isinstance(m_node, m_expr.Expression):
+        head = m_node.get_head()
+        elements = [mathics_to_sage(el, locals) for el in m_node.get_elements()]
+        head_name = head.get_name()
+
+        if head_name == "System`Plus":
+            return sum(elements) if elements else Integer(0)
+        if head_name == "System`Times":
+            import operator
+            from functools import reduce
+
+            return reduce(operator.mul, elements) if elements else Integer(1)
+        if head_name == "System`Power":
+            return elements[0] ** elements[1]
+        if head_name == "System`List":
+            return elements
+        if head_name == "System`Rule":
+            return (elements[0], elements[1])
+
+        head_name_short = head_name.split("`")[-1]
+        if head_name_short in locals:
+            func = locals[head_name_short]
+            return func(*elements) if callable(func) else func
+
+        # Try finding the function in Sage
+        try:
+            import sage.all
+
+            func = getattr(sage.all, head_name_short.lower())
+            if callable(func):
+                return func(*elements)
+        except AttributeError:
+            pass
+
+        return getattr(SR.var(head_name_short), "__call__")(*elements)
+
+    raise ValueError(f"Unknown node type: {type(m_node)}")
+
+
 @instancedoc
 class MathicsElement(ExtraTabCompletion, InterfaceElement, ABCMathicsElement):
     r"""
@@ -1078,6 +1153,13 @@ class MathicsElement(ExtraTabCompletion, InterfaceElement, ABCMathicsElement):
             return sage_eval(self._sage_repr(), locals=locals)
 
         self._check_valid()
+        m_node = self._mathics_result.last_eval
+        if m_node is not None:
+            try:
+                return mathics_to_sage(m_node, locals=locals)
+            except Exception:
+                pass
+
         if self.is_inexact():
             m = self.to_mpmath()
             if self is not m and m is not None:
@@ -1085,6 +1167,12 @@ class MathicsElement(ExtraTabCompletion, InterfaceElement, ABCMathicsElement):
                 return mpmath_to_sage(m, self.get_precision())
         s = self.to_sympy()
         if self is not s and s is not None:
+            import sympy
+
+            if s is sympy.S.true:
+                return True
+            if s is sympy.S.false:
+                return False
             if hasattr(s, '_sage_'):
                 try:
                     return s._sage_()
