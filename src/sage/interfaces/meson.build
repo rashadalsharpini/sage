@@ -31,7 +31,7 @@ py.install_sources(
   'magma_free.py',
   'maple.py',
   'mathematica.py',
-  'mathics.py',
+  'mathics3.py',
   'matlab.py',
   'maxima.py',
   'maxima_abstract.py',

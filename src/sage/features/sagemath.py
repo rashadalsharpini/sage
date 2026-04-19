@@ -1092,7 +1092,7 @@ class sage__symbolic(JoinFeature):
                               PythonModule('sage.interfaces.magma_free'),
                               PythonModule('sage.interfaces.maple'),
                               PythonModule('sage.interfaces.mathematica'),
-                              PythonModule('sage.interfaces.mathics'),
+                              PythonModule('sage.interfaces.mathics3'),
                               PythonModule('sage.interfaces.maxima_abstract'),
                               PythonModule('sage.interfaces.maxima_lib'),
                               PythonModule('sage.interfaces.qepcad'),

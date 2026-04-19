@@ -857,28 +857,28 @@ fricas_converter = FriCASConverter()
 
 
 ###########
-# Mathics #
+# Mathics3 #
 ###########
-class MathicsConverter(InterfaceInit):
+class Mathics3Converter(InterfaceInit):
     """
-    Convert any expression to Mathics.
+    Convert any expression to Mathics3.
 
     EXAMPLES::
 
         sage: var('x,y')
         (x, y)
         sage: f = exp(x^2) - arcsin(pi+x)/y
-        sage: f._mathics_()                                                     # optional - mathics
+        sage: f._mathics3_()                                                     # optional - mathics3
         -ArcSin[x + Pi] / y + E ^ x ^ 2
     """
 
     def __init__(self, interface=None):
         if interface is None:
-            from sage.interfaces.mathics import mathics
+            from sage.interfaces.mathics3 import mathics3
 
-            interface = mathics
+            interface = mathics3
         super().__init__(interface)
-        self.name_init = "_mathics_init_"
+        self.name_init = "_mathics3_init_"
 
     def pyobject(self, ex, obj):
         try:
@@ -893,15 +893,15 @@ class MathicsConverter(InterfaceInit):
     def composition(self, ex, operator):
         ops = ex.operands()
 
-        if hasattr(operator, "_mathics_init_evaled_"):
-            return getattr(operator, "_mathics_init_evaled_")(*ops)
+        if hasattr(operator, "_mathics3_init_evaled_"):
+            return getattr(operator, "_mathics3_init_evaled_")(*ops)
         if hasattr(operator, "_mathematica_init_evaled_"):
             return getattr(operator, "_mathematica_init_evaled_")(*ops)
 
         ops = [self(_) for _ in ops]
 
         op = None
-        # 1. Check if the mathics interface explicitly provides a conversion
+        # 1. Check if the mathics3 interface explicitly provides a conversion
         if hasattr(operator, "_interface_init_"):
             try:
                 op = operator._interface_init_(self.interface)
@@ -923,7 +923,7 @@ class MathicsConverter(InterfaceInit):
 
         if op is None:
             try:
-                op = operator._mathics_init_()
+                op = operator._mathics3_init_()
             except AttributeError:
                 try:
                     op = operator._mathematica_init_()
@@ -935,7 +935,7 @@ class MathicsConverter(InterfaceInit):
         return self.interface._function_call_string(op, ops, [])
 
 
-mathics_converter = MathicsConverter()
+mathics3_converter = Mathics3Converter()
 
 
 ##############

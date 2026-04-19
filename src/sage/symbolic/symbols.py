@@ -11,7 +11,7 @@ Symbol table
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-symbol_table = {'functions': {}, 'mathics': {}}
+symbol_table = {'functions': {}, 'mathics3': {}}
 
 
 def register_symbol(obj, conversions, nargs=None):
